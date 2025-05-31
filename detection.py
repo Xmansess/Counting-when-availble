@@ -19,19 +19,7 @@ class DetectionModel:
         print(f"[INFO] Model loaded in {time.time() - start_time:.2f} seconds")
         return model
     
-    def is_black_frame(self, frame, threshold=10):
-        # Check if frame is almost completely black
-        gray = np.mean(frame)
-        is_black = gray < threshold
-        if is_black:
-            print(f"[INFO] Frame appears to be black (mean value: {gray:.2f})")
-        return is_black
-    
-    def detect(self, frame, classes: int = 18, conf_threshold: float = 0.35) -> bool:
-        # First check if this is just a black frame
-        if self.is_black_frame(frame):
-            return False
-        
+    def detect(self, frame, classes: int = 18, conf_threshold: float = 0.5) -> bool:
         # Returns True if any sheep (class=18) detected in the frame with confidence > threshold
         start_time = time.time()
         results = self.model.track(frame, persist=False, verbose=False, classes=(classes,), conf=conf_threshold)
