@@ -134,12 +134,15 @@ def main():
     recording_start_time = 0
     current_recording_path = None
     last_processed_time = time.time()
+    processing_complete = False # Flag to indicate when to stop the main loop
 
     try:
-        while True:
+        while not processing_complete: # Loop until processing is marked complete
             if not reader_thread.is_alive() and not stop_event.is_set():
                  logger.error("Frame reader thread has unexpectedly stopped. Exiting.")
-                 break
+                 processing_complete = True # Stop main loop if reader dies
+                 continue
+
 
             current_frame = None
             try:
@@ -197,8 +200,14 @@ def main():
                             # For now, keeping it synchronous as per original code structure.
                             analyze_video(current_recording_path) # Result already logged in analyze_video
                             current_recording_path = None
+                            logger.info("Video analysis complete. Setting processing_complete to True.")
+                            processing_complete = True # Signal to exit the main loop
                         else:
                             logger.warning(f"Recording file not found or path invalid for analysis: {current_recording_path}")
+                            # Decide if we should stop anyway if the file is missing
+                            # For now, let's assume if the file is gone, something is wrong, and we should stop.
+                            logger.info("Setting processing_complete to True due to missing recording file for analysis.")
+                            processing_complete = True # Signal to exit the main loop
 
                     elif current_duration < MIN_RECORDING_TIME:
                          logger.info(f"State: recording. No sheep detected, but recording duration ({current_duration:.1f}s) is less than minimum ({MIN_RECORDING_TIME}s). Continuing recording.")
@@ -207,6 +216,9 @@ def main():
 
             logger.debug(f"Main loop waiting for {POLL_INTERVAL} seconds before next detection cycle.")
             time.sleep(POLL_INTERVAL)
+
+        if processing_complete:
+            logger.info("Primary processing complete. Moving to final cleanup.")
 
     except KeyboardInterrupt:
         logger.info("KeyboardInterrupt received. Cleaning up and shutting down...")
